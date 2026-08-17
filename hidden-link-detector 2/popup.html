@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hidden Link Detector</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 400px;
+    min-height: 200px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d0d0d;
+    color: #e0e0e0;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-bottom: 1px solid #ff003c33;
+    padding: 14px 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo {
+    width: 28px; height: 28px;
+    background: #ff003c;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+
+  header p {
+    font-size: 10px;
+    color: #666;
+    margin-top: 1px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #111;
+    border-bottom: 1px solid #222;
+  }
+
+  button {
+    flex: 1;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  #scanBtn {
+    background: #ff003c;
+    color: white;
+  }
+  #scanBtn:hover { background: #e0002f; }
+  #scanBtn:disabled { background: #550015; color: #888; cursor: default; }
+
+  #highlightBtn {
+    background: #1e3a5f;
+    color: #5ba3f5;
+    border: 1px solid #1e3a5f;
+  }
+  #highlightBtn:hover { background: #24487a; }
+  #highlightBtn:disabled { background: #1a1a1a; color: #333; border-color: #1a1a1a; cursor: default; }
+
+  #clearBtn {
+    background: #1a1a1a;
+    color: #666;
+    border: 1px solid #2a2a2a;
+  }
+  #clearBtn:hover { background: #222; color: #999; }
+  #clearBtn:disabled { color: #333; border-color: #1a1a1a; cursor: default; }
+
+  #exportBtn {
+    background: #1a2e1a;
+    color: #27ae60;
+    border: 1px solid #1a2e1a;
+  }
+  #exportBtn:hover { background: #1e3a1e; }
+  #exportBtn:disabled { background: #1a1a1a; color: #333; border-color: #1a1a1a; cursor: default; }
+
+  .status-bar {
+    padding: 8px 12px;
+    background: #0d0d0d;
+    font-size: 11px;
+    color: #555;
+    border-bottom: 1px solid #1a1a1a;
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-bar.scanning { color: #f5a623; }
+  .status-bar.found { color: #ff003c; }
+  .status-bar.clean { color: #27ae60; }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot.red { background: #ff003c; }
+  .dot.green { background: #27ae60; }
+  .dot.yellow { background: #f5a623; animation: pulse 1s infinite; }
+  .dot.gray { background: #444; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #filterBar {
+    display: none;
+    gap: 4px;
+    padding: 6px 12px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #1a1a1a;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #141414;
+    color: #555;
+    border: 1px solid #222;
+    flex: none;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { background: #1a1a1a; color: #888; }
+  .filter-chip.active { background: #1e3a5f; color: #5ba3f5; border-color: #1e3a5f; }
+  .filter-chip span {
+    margin-left: 3px;
+    opacity: 0.6;
+  }
+
+  #results {
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .finding {
+    background: #141414;
+    border: 1px solid #1f1f1f;
+    border-left: 3px solid #ff003c;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .finding:hover { background: #1a1010; border-left-color: #ff6680; }
+
+  .finding-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+
+  .badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .badge.hidden_link    { background: #ff003c22; color: #ff003c; border: 1px solid #ff003c44; }
+  .badge.hidden_clickable { background: #f5a62322; color: #f5a623; border: 1px solid #f5a62344; }
+  .badge.overlay_clickjack { background: #9b59b622; color: #9b59b6; border: 1px solid #9b59b644; }
+  .badge.suspicious_iframe { background: #3498db22; color: #3498db; border: 1px solid #3498db44; }
+
+  .severity-badge {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .finding-num {
+    font-size: 10px;
+    color: #444;
+    margin-left: auto;
+    font-family: monospace;
+  }
+
+  .finding-dest {
+    font-size: 11px;
+    color: #5ba3f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+    font-family: monospace;
+    padding-right: 24px;
+  }
+
+  .finding-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .reason-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    background: #ff003c11;
+    color: #ff6680;
+    border-radius: 3px;
+    border: 1px solid #ff003c22;
+    font-family: monospace;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    padding: 2px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex: none;
+    color: #666;
+  }
+  .finding:hover .copy-btn { opacity: 1; }
+  .copy-btn:hover { opacity: 1 !important; }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: #444;
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+  .empty-state p { font-size: 12px; line-height: 1.5; }
+  .empty-state.clean { color: #27ae60; }
+  .empty-state.clean .icon { filter: none; }
+
+  #results::-webkit-scrollbar { width: 4px; }
+  #results::-webkit-scrollbar-track { background: #0d0d0d; }
+  #results::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+
+  .summary {
+    padding: 6px 12px 8px;
+    font-size: 10px;
+    color: #444;
+    background: #0a0a0a;
+    border-bottom: 1px solid #1a1a1a;
+    display: none;
+  }
+  .summary.visible { display: flex; justify-content: space-between; }
+  .summary span { color: #666; }
+  .summary b { color: #ff003c; }
+
+  .version {
+    font-size: 9px;
+    color: #333;
+    margin-left: auto;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔍</div>
+  <div>
+    <h1>Hidden Link Detector</h1>
+    <p>Clickjacking &amp; invisible redirect scanner</p>
+  </div>
+  <span class="version">v1.2.0</span>
+</header>
+
+<div class="toolbar">
+  <button id="scanBtn">⚡ Scan Page</button>
+  <button id="highlightBtn">🎯 Highlight</button>
+  <button id="clearBtn">✕ Clear</button>
+  <button id="exportBtn">📥 Export</button>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <span class="dot gray"></span>
+  <span>Ready — click Scan to analyze this page</span>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div id="filterBar"></div>
+
+<div id="results">
+  <div class="empty-state">
+    <div class="icon">🛡️</div>
+    <p>Scan a page to detect hidden redirect links,<br>clickjacking overlays, and invisible anchors.</p>
+  </div>
+</div>
+
+<script src="src/popup.js"></script>
+</body>
+</html>
