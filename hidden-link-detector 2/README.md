@@ -1,4 +1,4 @@
-# Hidden Link Detector
+# Hide&seek
 
 A Chrome extension that scans web pages for deceptive and potentially malicious UI elements — hidden redirect links, clickjacking overlays, transparent iframes, and invisible anchors.
 
