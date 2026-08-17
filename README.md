@@ -98,6 +98,3 @@ hidden-link-detector/
 
 No data is sent anywhere. All scanning happens locally in the browser.
 
-## License
-
-MIT
